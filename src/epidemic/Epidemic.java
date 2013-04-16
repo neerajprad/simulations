@@ -66,6 +66,7 @@ public class Epidemic {
             unigen.initGenerator(1, Clcg4.NewSeed);
         }
         
+        
         //run the simulation repetitions and collect stats
         for (int rep = 1; rep <= numReps; rep++) {
             cost = doRep();
@@ -161,7 +162,8 @@ class Employee {
 	}
 	
 	public void transition(Clcg4 unigen) {
-		double randnum = unigen.nextValue(1);
+		double randnum = unigen.nextValue(Params.generator);
+//		System.out.println(randnum);
 		double p = 1 - (1 - alpha0) * (Math.pow((1 - alpha), stateCounts.get("infected")));
 		if (this.state == "susceptible") {
 			if (randnum < p) {
