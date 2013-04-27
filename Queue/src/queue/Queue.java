@@ -1,24 +1,18 @@
-package loadingdock;
+package queue;
 
-/*
- * A DTMC simulation of a loading dock given in the README file.
- *
- * usage: gamble n [-dm -t -i]
- * where
- *   n is number of simulation repetitions
- *   m is debug level (0 = none; 1 = perf measures; 2 = sample paths)
- *   -t means trial runs (uses different random numbers than production runs)
- *   -i means print out 99% confidence interval
- */
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
 
 import loadingdock.Clcg4;
+import loadingdock.Clocks;
 import loadingdock.Params;
+import loadingdock.randDist;
+
  
-public class Loadingdock {
+public class Queue {
     private static int debug;
+    private static String dist;
     private static boolean trial, ci;
     private static int numReps;
     private static DecimalFormat df1; 
@@ -37,13 +31,16 @@ public class Loadingdock {
         int i=0;        
         // parse command line arguments
         if (args.length < 1) {
-          System.out.println("usage: epidemic n [-dm -t -i]");
+          System.out.println("usage: queue n [-dist -dm -t -i]");
           return;
         }
         numReps = Integer.parseInt(args[0]);
         i++;
         while (i < args.length && args[i].startsWith("-")) {
             arg = args[i++];
+            if (arg.equals("-dist")) {
+            	dist = args[i++];
+            }
             if (arg.equals("-t")) {
                 trial = true;
             }
@@ -152,11 +149,11 @@ public class Loadingdock {
     }
 } 
 
+
 class State {
-	static int[] cur_state;
-	static Clocks clock;
+	static int cur_state;
+	Clock clock;
 	static void init(boolean trial) {
-		Params.initState.initialize();
 		cur_state = Params.initState.curState;
     	boolean[] clocks_active = Params.initState.clockActive;
     	String[] clock_dists = Params.clockDists;
@@ -215,19 +212,15 @@ class State {
 	}
 }
 
-class Clocks {
-	int count;
-	String[] dist;
-	boolean[] active;
-	double[] timers;
-	double[] speeds;
+class Clock {
+	String dist;
+	boolean active;
+	double speed;
 	randDist clock_dist = new randDist(); 
-	public Clocks (int n, String[] distns, boolean[] active_clocks, boolean trial, double[] clock_speeds) {
-		assert distns.length == n;
-		count = n;
-		dist = distns;
-		active = active_clocks;
-		speeds = clock_speeds;
+	public Clock(String distn, boolean active, double[] speed, boolean trial) {
+		this.dist = distn;
+		this.active = active;
+		this.speed = speed;
 		timers = new double[n];
 		for (int i = 0; i < n; i++) {
 			if (active[i]) {
@@ -393,3 +386,5 @@ class Estimator { // computes point estimates and confidence intervals
         return sum;
     }
 }
+
+
