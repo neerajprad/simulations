@@ -1,18 +1,31 @@
 package queue;
+import java.util.Arrays;
 
 public class Params {
+	public static int sim_lifetime = 1000;
 	public static int generator = 1;
 	public static double epsilon = 0.01;
 	public static int numStates = 1;
-	public static int numClocks = 1;
+	public static int numClocks = 2;
+	public static String[] clockDists;
+	public static String delivery_clock = "triangular";
 	
 	static class initState {
-		public static boolean clockActive = true;
-		public static double clockSpeed = 1.0;
-		public static int curState = 1;
+		public static boolean[] clockActive = new boolean[numClocks];
+		public static double[] clockSpeed = new double[numClocks];
+		public static int[] curState = new int[numStates];
+		
+		public static void initialize(String queue_clock) {
+			clockDists = new String[] {delivery_clock, queue_clock};
+			Arrays.fill(clockActive, true);
+			clockActive[0] = false;
+			Arrays.fill(clockSpeed, 1);
+			Arrays.fill(curState, 0);
+		}
 	}
 	
 	static class distConfig {
+		public static double triangular_V = 1.98;
 		public static double poisson_lambda = 1.0; //parameters for generating distribution from random numbers
 		public static double weibull_lambda1 = 0.8856899;
 		public static double weibull_alpha1 = 2.1013491;
