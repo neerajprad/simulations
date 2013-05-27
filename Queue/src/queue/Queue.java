@@ -3,7 +3,7 @@ package queue;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
-
+import org.apache.commons.math3.distribution.NormalDistribution;
  
 public class Queue {
     private static int debug;
@@ -81,11 +81,11 @@ public class Queue {
     	State.init(trial, queue_dist);
         Double elapsed_time = 0.0;
         double queue_time = 0.0;
-        int itr = 0;
-        double itr_time;
-        while (itr < Params.sim_lifetime) {
+        Double itr_time = 0.0;
+        while (elapsed_time < Params.sim_lifetime) {
         	if (debug == 2) {
         		System.out.println("Elapsed time: "+ elapsed_time.toString());
+        		System.out.println("Itr time: "+ itr_time.toString());
         		System.out.println("Items in queue: "+ State.items_inqueue().toString());
         		State.printState();
         		State.clock.printClocks();
@@ -94,7 +94,6 @@ public class Queue {
         	itr_time = State.transition();
         	elapsed_time = elapsed_time + itr_time;
         	queue_time = queue_time + itr_time * items_inqueue;
-        	itr ++;
         }
         if (debug == 2) {
         	System.out.println("--------Run complete---------");
@@ -132,6 +131,7 @@ class State {
 	
 	
 	public static double transition() {
+
 		int next_event = clock.next_event();
 		double time_elapsed = clock.event_time();
 		// Item arrived
@@ -165,6 +165,7 @@ class Clocks {
 	String[] dist;
 	boolean[] active;
 	double[] timers;
+	double[] timers_last;
 	double[] speeds;
 	randDist clock_dist = new randDist(); 
 	public Clocks (int n, String[] distns, boolean[] active_clocks, boolean trial, double[] clock_speeds) {
@@ -174,6 +175,7 @@ class Clocks {
 		active = active_clocks;
 		speeds = clock_speeds;
 		timers = new double[n];
+//		timers_last = new double[n];
 		for (int i = 0; i < n; i++) {
 			if (active[i]) {
 				timers[i] = clock_dist.init(dist[i]);
@@ -236,9 +238,15 @@ class Clocks {
 		System.out.print("Active clocks: ");
 		System.out.println(Arrays.toString(active));
 	}
+	
+	public void printClocksLast() {
+		System.out.print("Event clocks_last: ");
+		System.out.println(Arrays.toString(timers_last));
+	}
 }
 
 class randDist{
+	double prevValue = 0.0;
 	public double init(String dist) {
 		if (dist.equals("triangular")) return triangular(Params.distConfig.triangular_V, 
 				Params.distConfig.unigen1);
@@ -251,6 +259,14 @@ class randDist{
 		
 		else if (dist.equals("weibull2")) return weibull(Params.distConfig.weibull_lambda2, 
 				Params.distConfig.weibull_alpha2, Params.distConfig.unigen2); 
+
+		if (dist.equals("exp1")) return exponential1(Params.distConfig.ndist, 
+				Params.distConfig.unigen2, Params.distConfig.unigen3); 
+		
+		else if (dist.equals("exp2")) return exponential2(Params.distConfig.ndist, 
+				Params.distConfig.unigen2, Params.distConfig.unigen3); 
+		
+//		else if (dist.equals("exp")) return exponential(); 
 
 		return -100;
 	}
@@ -281,6 +297,43 @@ class randDist{
 		while (p > L);
 		return k - 1;
 	}
+	
+	public double exponential1 (NormalDistribution N, Clcg4 unigen1, Clcg4 unigen2) {
+		double randnum1 = unigen1.nextValue(Params.generator);
+		double randnum2 = unigen2.nextValue(Params.generator);
+		double z1 = Math.sqrt(-2 * Math.log(randnum1)) * Math.cos(2 * Math.PI * randnum2);
+		double z2 = Math.sqrt(-2 * Math.log(randnum1)) * Math.sin(2 * Math.PI * randnum2);
+		z2 = prevValue;
+		prevValue = z1;
+//		System.out.print("z------");
+//		System.out.println(z1);
+//		System.out.println(z2);
+		double y = 1.0/Math.sqrt(2) * (z1 - z2);
+//		System.out.print("y------");
+//		System.out.println(y);
+		return -Math.log(N.cumulativeProbability(y));
+	}
+	
+	public double exponential2 (NormalDistribution N, Clcg4 unigen1, Clcg4 unigen2) {
+		double randnum1 = unigen1.nextValue(Params.generator);
+		double randnum2 = unigen2.nextValue(Params.generator);
+//		System.out.print("cos function-----:");
+//		System.out.println(randnum2);
+//		System.out.println(Math.cos(2 * Math.PI * randnum2));
+		double z1 = Math.sqrt(-2 * Math.log(randnum1)) * Math.cos(2 * Math.PI * randnum2);
+		double z2 = Math.sqrt(-2 * Math.log(randnum1)) * Math.sin(2 * Math.PI * randnum2);
+		z2 = prevValue;
+		prevValue = z1;
+//		System.out.print("z------:");
+//		System.out.println(z1);
+//		System.out.println(z2);
+		double y = 1.0/Math.sqrt(2) * (z1 + z2);
+//		System.out.print("y------");
+//		System.out.println(y);
+		return -Math.log(N.cumulativeProbability(y));
+	}
+	
+//	public double exponential (Clcg4 unigen1)
 }
 
 class Estimator { // computes point estimates and confidence intervals
